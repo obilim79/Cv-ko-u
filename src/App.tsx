@@ -81,6 +81,21 @@ export default function App() {
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
+  const [keyStatus, setKeyStatus] = useState<{ status: string, message?: string, prefix?: string, length?: number } | null>(null);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      try {
+        const res = await fetch("/api/debug-key");
+        const data = await res.json();
+        setKeyStatus(data);
+      } catch (e) {
+        setKeyStatus({ status: "error", message: "Sunucuya bağlanılamadı." });
+      }
+    };
+    checkKey();
+  }, []);
+
   // --- 1. AŞAMA YAPAY ZEKA: 50 SORULUK MÜLAKAT ---
   const handleGenerateQuestions = async () => {
     if (!cvText.trim() && !pdfData) { setError("Lütfen işlem yapılacak bir CV yükleyin."); return; }
@@ -518,12 +533,20 @@ export default function App() {
             <div className="bg-blue-600 text-white p-2 rounded-lg"><SparklesIcon className="w-6 h-6"/></div>
             <h1 className="text-xl font-bold">Kariyer Koçu & CV Mülakatı</h1>
           </div>
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span className={`px-3 py-1 rounded-full ${step === 'input' ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>1. Yükle</span>
-            <ChevronRightIcon className="w-4 h-4 text-slate-300" />
-            <span className={`px-3 py-1 rounded-full ${(step === 'generating_questions' || step === 'questionnaire') ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>2. Mülakat</span>
-            <ChevronRightIcon className="w-4 h-4 text-slate-300" />
-            <span className={`px-3 py-1 rounded-full ${(step === 'analyzing' || step === 'review') ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>3. Onayla</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-200">
+              <div className={`w-2 h-2 rounded-full ${keyStatus?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                {keyStatus?.status === 'ok' ? `API: AKTİF (${keyStatus.prefix})` : 'API: HATALI'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span className={`px-3 py-1 rounded-full ${step === 'input' ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>1. Yükle</span>
+              <ChevronRightIcon className="w-4 h-4 text-slate-300" />
+              <span className={`px-3 py-1 rounded-full ${(step === 'generating_questions' || step === 'questionnaire') ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>2. Mülakat</span>
+              <ChevronRightIcon className="w-4 h-4 text-slate-300" />
+              <span className={`px-3 py-1 rounded-full ${(step === 'analyzing' || step === 'review') ? 'bg-blue-100 text-blue-700' : 'text-slate-400'}`}>3. Onayla</span>
+            </div>
           </div>
         </div>
       </header>
@@ -538,6 +561,18 @@ export default function App() {
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              {keyStatus?.status !== 'ok' && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start">
+                  <div className="p-2 bg-amber-100 rounded-lg"><SparklesIcon className="w-5 h-5 text-amber-600"/></div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-900">API Anahtarı Yapılandırması Gerekli</h4>
+                    <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                      Uygulamanın çalışması için <strong>Secrets</strong> panelinden <code>GEMINI_API_KEY</code> değerini eklemelisiniz. 
+                      Anahtarınızı <a href="https://aistudio.google.com/app/apikey" target="_blank" className="underline font-bold">buradan</a> ücretsiz alabilirsiniz.
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <div className="flex-shrink-0 w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-400 flex items-center justify-center overflow-hidden cursor-pointer" onClick={() => photoInputRef.current?.click()}>
                   {photoData ? <img src={photoData} alt="Vesikalık" className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}

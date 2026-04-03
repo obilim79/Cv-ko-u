@@ -15,26 +15,47 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
+  app.get("/api/debug-key", (req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.json({ status: "error", message: "GEMINI_API_KEY bulunamadı." });
+    }
+    if (apiKey === "MY_GEMINI_API_KEY") {
+      return res.json({ status: "warning", message: "Varsayılan placeholder değer duruyor." });
+    }
+    return res.json({ 
+      status: "ok", 
+      length: apiKey.length, 
+      prefix: apiKey.substring(0, 4) + "...",
+      suffix: "..." + apiKey.substring(apiKey.length - 4)
+    });
+  });
+
   // API Routes
   app.post("/api/generate-questions", async (req, res) => {
     const { parts, systemPrompt } = req.body;
     
     try {
       // AI Studio platformu anahtarı process.env.GEMINI_API_KEY olarak enjekte eder.
-      const apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY;
+      
+      // Anahtarı temizle: Tırnak işaretlerini ve boşlukları kaldır
+      if (apiKey) {
+        apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
+      }
       
       if (apiKey) {
-        console.log(`API Anahtarı yüklendi (İlk 4 karakter: ${apiKey.substring(0, 4)}...)`);
+        console.log(`API Anahtarı temizlendi ve yüklendi (Karakter sayısı: ${apiKey.length})`);
       }
 
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
-        console.error("HATA: GEMINI_API_KEY bulunamadı veya varsayılan değerde kaldı.");
+      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "") {
+        console.error("HATA: GEMINI_API_KEY bulunamadı veya geçersiz.");
         return res.status(500).json({ 
-          error: "API Anahtarı Yapılandırılmamış. Lütfen Secrets panelinden GEMINI_API_KEY değerini girin." 
+          error: "API Anahtarı Yapılandırılamadı. Lütfen Secrets panelini kontrol edin." 
         });
       }
 
-      const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: MODEL_NAME,
         contents: [{ parts }],
@@ -55,19 +76,19 @@ async function startServer() {
     const { parts, systemPrompt } = req.body;
     
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
+      let apiKey = process.env.GEMINI_API_KEY;
       
       if (apiKey) {
-        console.log(`API Anahtarı yüklendi (İlk 4 karakter: ${apiKey.substring(0, 4)}...)`);
+        apiKey = apiKey.trim().replace(/^["']|["']$/g, '');
       }
 
-      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
+      if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey === "") {
         return res.status(500).json({ 
-          error: "API Anahtarı Yapılandırılmamış. Lütfen Secrets panelinden GEMINI_API_KEY değerini girin." 
+          error: "API Anahtarı Yapılandırılamadı. Lütfen Secrets panelini kontrol edin." 
         });
       }
 
-      const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: MODEL_NAME,
         contents: [{ parts }],
